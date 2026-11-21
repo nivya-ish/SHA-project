@@ -1,0 +1,74 @@
+﻿services:
+  db:
+    image: postgres:16-alpine
+    container_name: smart-health-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smarthealth}
+      POSTGRES_USER: ${POSTGRES_USER:-smarthealth}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smarthealth} -d ${POSTGRES_DB:-smarthealth}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: smart-health-backend
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://smarthealth:change_me@db:5432/smarthealth}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost}
+      CHROMA_PERSIST_DIR: /app/rag/chroma_db
+      MODEL_ARTIFACT_DIR: /app/ml/artifacts
+      TRAIN_DATA_PATH: /app/data/raw/Training.csv
+      TEST_DATA_PATH: /app/data/raw/Testing.csv
+      MEDICAL_DOCS_DIR: /app/data/medical_docs
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_ENABLED: ${GEMINI_ENABLED:-true}
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/app/rag/chroma_db
+      - ./data/medical_docs:/app/data/medical_docs
+      - ./ml/artifacts:/app/ml/artifacts
+      - ./data/raw:/app/data/raw
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    container_name: smart-health-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:
+  chroma_data:

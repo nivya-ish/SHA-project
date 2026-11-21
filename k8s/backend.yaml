@@ -1,0 +1,87 @@
+﻿apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: chroma-pvc
+  namespace: smart-health-assistant
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-health-backend
+  namespace: smart-health-assistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: smart-health-backend
+  template:
+    metadata:
+      labels:
+        app: smart-health-backend
+    spec:
+      containers:
+        - name: backend
+          image: smart-health-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: smart-health-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smart-health-secrets
+                  key: POSTGRES_PASSWORD
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smart-health-secrets
+                  key: GEMINI_API_KEY
+            - name: CHROMA_PERSIST_DIR
+              value: /app/rag/chroma_db
+          volumeMounts:
+            - name: chroma-data
+              mountPath: /app/rag/chroma_db
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+      volumes:
+        - name: chroma-data
+          persistentVolumeClaim:
+            claimName: chroma-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: smart-health-assistant
+spec:
+  selector:
+    app: smart-health-backend
+  ports:
+    - port: 8000
+      targetPort: 8000

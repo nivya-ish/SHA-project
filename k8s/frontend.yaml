@@ -1,0 +1,54 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-health-frontend
+  namespace: smart-health-assistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: smart-health-frontend
+  template:
+    metadata:
+      labels:
+        app: smart-health-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: smart-health-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: smart-health-assistant
+spec:
+  type: NodePort
+  selector:
+    app: smart-health-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080

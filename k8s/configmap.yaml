@@ -1,0 +1,28 @@
+﻿apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smart-health-config
+  namespace: smart-health-assistant
+data:
+  APP_NAME: "Smart Health Assistant"
+  APP_ENV: "production"
+  DEBUG: "false"
+  API_V1_PREFIX: "/api/v1"
+  CORS_ORIGINS: "http://localhost:30080,http://localhost"
+  DATABASE_URL: "postgresql+psycopg2://smarthealth:change_me@postgres:5432/smarthealth"
+  POSTGRES_DB: "smarthealth"
+  POSTGRES_USER: "smarthealth"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  TRAIN_DATA_PATH: "data/raw/Training.csv"
+  TEST_DATA_PATH: "data/raw/Testing.csv"
+  MODEL_ARTIFACT_DIR: "ml/artifacts"
+  MODEL_METADATA_PATH: "ml/artifacts/metadata.json"
+  CHROMA_PERSIST_DIR: "rag/chroma_db"
+  CHROMA_COLLECTION: "medical_knowledge"
+  MEDICAL_DOCS_DIR: "data/medical_docs"
+  EMBEDDING_MODEL: "all-MiniLM-L6-v2"
+  RAG_TOP_K: "4"
+  GEMINI_MODEL: "gemini-1.5-flash"
+  GEMINI_TIMEOUT_SECONDS: "20"
+  GEMINI_ENABLED: "true"

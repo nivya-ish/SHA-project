@@ -1,0 +1,56 @@
+﻿services:
+  - type: web
+    name: smart-health-assistant-backend
+    runtime: python
+    plan: free
+    rootDir: .
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --app-dir backend
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: APP_NAME
+        value: Smart Health Assistant
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_ENABLED
+        value: "true"
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
+      - key: CHROMA_PERSIST_DIR
+        value: rag/chroma_db
+      - key: MEDICAL_DOCS_DIR
+        value: data/medical_docs
+      - key: MODEL_ARTIFACT_DIR
+        value: ml/artifacts
+      - key: TRAIN_DATA_PATH
+        value: data/raw/Training.csv
+      - key: TEST_DATA_PATH
+        value: data/raw/Testing.csv
+
+  - type: web
+    name: smart-health-assistant-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
